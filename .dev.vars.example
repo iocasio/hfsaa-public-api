@@ -1,0 +1,2 @@
+# Copy this file to .dev.vars for local development. Do not commit .dev.vars.
+SUPABASE_SERVICE_ROLE_KEY="replace-with-a-local-service-role-key"

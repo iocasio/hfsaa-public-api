@@ -4,7 +4,7 @@ info:
   version: 1.0.0-draft
   description: |
     Proposed read-only API for HFSAA-certified restaurants, meat markets, and dining halls.
-    This specification is a draft. No production server is available yet.
+    This specification is a draft. A non-production staging server may be used during implementation.
   contact:
     name: HFSAA
 paths:
@@ -157,7 +157,7 @@ components:
       description: Opaque HFSAA location identifier.
       schema:
         type: string
-        example: loc_01HABCDEF123456789
+        example: 550e8400-e29b-41d4-a716-446655440000
     Type:
       name: type
       in: query
@@ -254,7 +254,7 @@ components:
         id:
           type: string
           description: Opaque HFSAA location identifier.
-          example: loc_01HABCDEF123456789
+          example: 550e8400-e29b-41d4-a716-446655440000
         type:
           $ref: '#/components/schemas/LocationType'
         name:
@@ -318,7 +318,7 @@ components:
         next_cursor:
           type: [string, 'null']
           description: Cursor for the next page, or null when no more results exist.
-          example: eyJpZCI6ImxvY18wMUhBQkMifQ
+          example: eyJpZCI6IjU1MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMCJ9
     Chapter:
       type: object
       additionalProperties: false
@@ -339,10 +339,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/LocationType'
-        updated_at:
-          type: string
-          format: date-time
-          description: Timestamp of the latest published directory-data update.
     Error:
       type: object
       additionalProperties: false
