@@ -1,0 +1,34 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "HFSAA Developer",
+  "description": "Documentation for the planned HFSAA public directory API.",
+  "colors": {
+    "primary": "#006B4F",
+    "light": "#008C69",
+    "dark": "#004C38"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Start here",
+            "pages": [
+              "index",
+              "getting-started",
+              "data-policy"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "openapi": "openapi.yaml"
+      }
+    ]
+  },
+  "contextual": {
+    "options": ["copy", "download-spec"]
+  }
+}

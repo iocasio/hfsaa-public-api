@@ -1,0 +1,32 @@
+---
+title: "HFSAA Public API"
+description: "A planned public API for HFSAA-certified restaurants, meat markets, and dining halls."
+---
+
+<Note>
+  **Status: planned.** The API is not yet deployed. This site documents the proposed v1 contract so developers can review it before implementation.
+</Note>
+
+The HFSAA Public API will make HFSAA-approved directory data available for use in third-party applications.
+
+## What the API will include
+
+- HFSAA-certified restaurants
+- HFSAA-certified meat markets
+- HFSAA-certified dining halls
+- HFSAA certificate and chapter information
+- An optional Google Place ID for developers who choose to enrich their own views through Google Places
+
+## What the API will not include
+
+- Google photos, photo URLs, Google Maps URLs, or Google-derived business details
+- Contact names, contact emails, or internal operational data
+- Write endpoints
+
+## Planned base URL
+
+The production API will be hosted on Cloudflare. Its final `api.hfsaa.org` URL will be published here before launch.
+
+<Card title="Review the proposed endpoints" icon="code" href="/api-reference/locations/list-locations">
+  Browse the generated API reference and data schemas.
+</Card>

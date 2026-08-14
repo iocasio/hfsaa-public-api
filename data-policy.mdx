@@ -1,0 +1,26 @@
+---
+title: "Data policy"
+description: "What HFSAA data the public API is designed to expose."
+---
+
+## HFSAA-approved directory data
+
+The public API is designed to expose a deliberately small, stable set of HFSAA directory fields:
+
+| Field | Description |
+| --- | --- |
+| `id` | Opaque HFSAA location identifier |
+| `certificate_id` | HFSAA certificate identifier |
+| `type` | `restaurant`, `meat_market`, or `dining_hall` |
+| `name` | Business or facility name |
+| `certification_status` | Certification status |
+| `chapter_name` | Associated HFSAA chapter |
+| `address`, `city`, `state`, `zip_code` | Directory address |
+| `cuisine_type` | HFSAA directory classification, where available |
+| `google_place_id` | Optional Google Place ID identifier |
+
+## Deliberately excluded fields
+
+The API will not return images, image URLs, Google Maps URLs, hours, phone numbers, websites, delivery links, map coordinates, personal contact details, internal IDs, or operational metadata.
+
+This boundary keeps the API focused on HFSAA-approved directory records. It also means applications that want third-party enrichment can do so using their own provider relationship and permissions.

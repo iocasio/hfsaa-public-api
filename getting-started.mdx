@@ -1,0 +1,37 @@
+---
+title: "Getting started"
+description: "How to prepare for the HFSAA Public API launch."
+---
+
+## Before launch
+
+The v1 API is read-only and does not require an API key in its proposed contract. Rate limits and a production base URL will be announced before it becomes available.
+
+## Core resource
+
+`Location` is the canonical resource. Every certified restaurant, meat market, and dining hall has an opaque HFSAA location ID and a `type`.
+
+```json
+{
+  "id": "loc_01H...",
+  "type": "restaurant",
+  "name": "Example Restaurant",
+  "certificate_id": "HFSAA-1234",
+  "certification_status": "certified",
+  "chapter_name": "Example Chapter",
+  "address": "123 Main Street",
+  "city": "Example City",
+  "state": "NY",
+  "zip_code": "10001",
+  "cuisine_type": "Mediterranean",
+  "google_place_id": "ChIJ..."
+}
+```
+
+## Filtering and pagination
+
+`GET /v1/locations` will support filters for type, state, city, ZIP code, chapter, certificate ID, and free-text search. Lists use a `limit` and cursor-based `cursor` parameter.
+
+## Google Place IDs
+
+When supplied, a `google_place_id` is an identifier only. If your application uses Google Places to look up photos, hours, maps, or other Google content, you are responsible for your own Google Maps Platform credentials, billing, attribution, and policy compliance.

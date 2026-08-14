@@ -1,0 +1,360 @@
+openapi: 3.1.0
+info:
+  title: HFSAA Public API
+  version: 1.0.0-draft
+  description: |
+    Proposed read-only API for HFSAA-certified restaurants, meat markets, and dining halls.
+    This specification is a draft. No production server is available yet.
+  contact:
+    name: HFSAA
+paths:
+  /v1/locations:
+    get:
+      tags: [Locations]
+      summary: List locations
+      description: Returns HFSAA-certified directory locations across all supported types.
+      operationId: listLocations
+      parameters:
+        - $ref: '#/components/parameters/Type'
+        - $ref: '#/components/parameters/State'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/ZipCode'
+        - $ref: '#/components/parameters/Chapter'
+        - $ref: '#/components/parameters/CertificateId'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: A page of locations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /v1/locations/{locationId}:
+    get:
+      tags: [Locations]
+      summary: Get a location
+      description: Returns a single HFSAA-certified directory location by its opaque HFSAA ID.
+      operationId: getLocation
+      parameters:
+        - $ref: '#/components/parameters/LocationId'
+      responses:
+        '200':
+          description: The requested location.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/restaurants:
+    get:
+      tags: [Locations]
+      summary: List restaurants
+      description: Convenience endpoint equivalent to listing locations with `type=restaurant`.
+      operationId: listRestaurants
+      parameters:
+        - $ref: '#/components/parameters/State'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/ZipCode'
+        - $ref: '#/components/parameters/Chapter'
+        - $ref: '#/components/parameters/CertificateId'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: A page of restaurant locations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationList'
+  /v1/meat-markets:
+    get:
+      tags: [Locations]
+      summary: List meat markets
+      description: Convenience endpoint equivalent to listing locations with `type=meat_market`.
+      operationId: listMeatMarkets
+      parameters:
+        - $ref: '#/components/parameters/State'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/ZipCode'
+        - $ref: '#/components/parameters/Chapter'
+        - $ref: '#/components/parameters/CertificateId'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: A page of meat market locations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationList'
+  /v1/dining-halls:
+    get:
+      tags: [Locations]
+      summary: List dining halls
+      description: Convenience endpoint equivalent to listing locations with `type=dining_hall`.
+      operationId: listDiningHalls
+      parameters:
+        - $ref: '#/components/parameters/State'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/ZipCode'
+        - $ref: '#/components/parameters/Chapter'
+        - $ref: '#/components/parameters/CertificateId'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: A page of dining hall locations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationList'
+  /v1/chapters:
+    get:
+      tags: [Chapters]
+      summary: List chapters
+      description: Returns HFSAA chapters represented by public directory locations.
+      operationId: listChapters
+      responses:
+        '200':
+          description: HFSAA chapters.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Chapter'
+  /v1/dataset:
+    get:
+      tags: [Metadata]
+      summary: Get dataset metadata
+      description: Returns metadata about the directory dataset and the API contract.
+      operationId: getDatasetMetadata
+      responses:
+        '200':
+          description: Dataset metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetMetadata'
+components:
+  parameters:
+    LocationId:
+      name: locationId
+      in: path
+      required: true
+      description: Opaque HFSAA location identifier.
+      schema:
+        type: string
+        example: loc_01HABCDEF123456789
+    Type:
+      name: type
+      in: query
+      description: Restrict results to a location type.
+      schema:
+        $ref: '#/components/schemas/LocationType'
+    State:
+      name: state
+      in: query
+      description: Filter by two-letter U.S. state or territory code.
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 2
+        example: NY
+    City:
+      name: city
+      in: query
+      description: Filter by city name.
+      schema:
+        type: string
+        example: New York
+    ZipCode:
+      name: zip_code
+      in: query
+      description: Filter by ZIP or postal code.
+      schema:
+        type: string
+        example: '10001'
+    Chapter:
+      name: chapter
+      in: query
+      description: Filter by chapter name.
+      schema:
+        type: string
+        example: New York
+    CertificateId:
+      name: certificate_id
+      in: query
+      description: Filter by HFSAA certificate ID.
+      schema:
+        type: string
+        example: HFSAA-1234
+    Search:
+      name: q
+      in: query
+      description: Search location names and directory fields.
+      schema:
+        type: string
+        maxLength: 100
+        example: halal grill
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of results returned in one page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque cursor returned by a prior list response.
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: The request contains an invalid parameter.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: The requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    LocationType:
+      type: string
+      enum: [restaurant, meat_market, dining_hall]
+    Location:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - type
+        - name
+        - certificate_id
+        - certification_status
+      properties:
+        id:
+          type: string
+          description: Opaque HFSAA location identifier.
+          example: loc_01HABCDEF123456789
+        type:
+          $ref: '#/components/schemas/LocationType'
+        name:
+          type: string
+          example: Example Restaurant
+        certificate_id:
+          type: string
+          example: HFSAA-1234
+        certification_status:
+          type: string
+          description: Public certification state. Only certified locations are returned in v1.
+          example: certified
+        certification_date:
+          type: string
+          format: date
+          description: Certification date, when available.
+          example: '2026-01-15'
+        chapter_name:
+          type: string
+          description: Associated HFSAA chapter, when available.
+          example: New York
+        address:
+          type: string
+          example: 123 Main Street
+        city:
+          type: string
+          example: New York
+        state:
+          type: string
+          example: NY
+        zip_code:
+          type: string
+          example: '10001'
+        cuisine_type:
+          type: string
+          description: HFSAA directory classification, when available.
+          example: Mediterranean
+        google_place_id:
+          type: string
+          description: Optional Google Place ID identifier. This API does not provide Google content.
+          example: ChIJd8BlQ2BZwokRAFUEcm_qrcA
+    LocationList:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    Pagination:
+      type: object
+      additionalProperties: false
+      required: [limit]
+      properties:
+        limit:
+          type: integer
+          example: 25
+        next_cursor:
+          type: [string, 'null']
+          description: Cursor for the next page, or null when no more results exist.
+          example: eyJpZCI6ImxvY18wMUhBQkMifQ
+    Chapter:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: New York
+    DatasetMetadata:
+      type: object
+      additionalProperties: false
+      required: [api_version, location_types]
+      properties:
+        api_version:
+          type: string
+          example: v1
+        location_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationType'
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of the latest published directory-data update.
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: invalid_parameter
+            message:
+              type: string
+              example: limit must be between 1 and 100.
