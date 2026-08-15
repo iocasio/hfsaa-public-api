@@ -206,6 +206,19 @@ function requestPath(url) {
   return url.pathname.replace(/\/+$/, "") || "/";
 }
 
+async function enforceRateLimit(request, env, path) {
+  if (!path.startsWith("/v1/") || !env.API_RATE_LIMITER) return null;
+
+  // This is only a coarse, per-location safeguard while the public API has no
+  // caller identity. Production will also use a zone-level rule once api.hfsaa.org
+  // is attached to Cloudflare.
+  const key = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const { success } = await env.API_RATE_LIMITER.limit({ key });
+  return success
+    ? null
+    : error("rate_limited", "Too many requests. Try again in one minute.", 429);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -215,6 +228,9 @@ export default {
     if (request.method !== "GET") return error("method_not_allowed", "Only GET requests are supported.", 405);
 
     try {
+      const rateLimitResponse = await enforceRateLimit(request, env, path);
+      if (rateLimitResponse) return rateLimitResponse;
+
       let response;
       if (path === "/health") {
         response = json({ status: "ok", api_version: "v1", environment: env.ENVIRONMENT });

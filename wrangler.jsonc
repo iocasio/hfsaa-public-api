@@ -5,6 +5,13 @@
   "compatibility_date": "2026-08-14",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "ratelimits": [
+    {
+      "name": "API_RATE_LIMITER",
+      "namespace_id": "11001",
+      "simple": { "limit": 120, "period": 60 }
+    }
+  ],
   "observability": {
     "enabled": true,
     "logs": { "head_sampling_rate": 1 },
@@ -17,6 +24,13 @@
   "env": {
     "staging": {
       "name": "hfsaa-public-api-staging",
+      "ratelimits": [
+        {
+          "name": "API_RATE_LIMITER",
+          "namespace_id": "11002",
+          "simple": { "limit": 120, "period": 60 }
+        }
+      ],
       "vars": {
         "SUPABASE_URL": "https://pmolfcjxryccsisyhhwm.supabase.co",
         "ENVIRONMENT": "staging"
