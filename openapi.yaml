@@ -1,12 +1,15 @@
 openapi: 3.1.0
 info:
   title: HFSAA Public API
-  version: 1.0.0-draft
+  version: 1.0.0-staging
   description: |
-    Proposed read-only API for HFSAA-certified restaurants, meat markets, and dining halls.
-    This specification is a draft. A non-production staging server may be used during implementation.
+    Read-only API for HFSAA-certified restaurants, meat markets, and dining halls.
+    This staging preview may change before the production launch.
   contact:
     name: HFSAA
+servers:
+  - url: https://hfsaa-public-api-staging.idris-ocasio.workers.dev
+    description: Staging preview (temporary)
 paths:
   /v1/locations:
     get:

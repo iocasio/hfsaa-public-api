@@ -1,11 +1,17 @@
 ---
 title: "Getting started"
-description: "How to prepare for the HFSAA Public API launch."
+description: "Use the HFSAA Public API staging preview."
 ---
 
-## Before launch
+## Staging preview
 
-The v1 API is read-only and does not require an API key in its proposed contract. Rate limits and a production base URL will be announced before it becomes available.
+The v1 API is read-only and does not require an API key. Use this staging base URL while the permanent `api.hfsaa.org` domain is being configured:
+
+```
+https://hfsaa-public-api-staging.idris-ocasio.workers.dev
+```
+
+The staging URL is for testing and may change before production. Rate limits will be documented before the production launch.
 
 ## Core resource
 
@@ -28,9 +34,15 @@ The v1 API is read-only and does not require an API key in its proposed contract
 }
 ```
 
+## Make a request
+
+```bash
+curl "https://hfsaa-public-api-staging.idris-ocasio.workers.dev/v1/locations?type=restaurant&limit=25"
+```
+
 ## Filtering and pagination
 
-`GET /v1/locations` will support filters for type, state, city, ZIP code, chapter, certificate ID, and free-text search. Lists use a `limit` and cursor-based `cursor` parameter.
+`GET /v1/locations` supports filters for type, state, city, ZIP code, chapter, certificate ID, and free-text search. Lists use a `limit` and cursor-based `cursor` parameter.
 
 ## Google Place IDs
 
