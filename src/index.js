@@ -220,12 +220,6 @@ export default {
         response = json({ status: "ok", api_version: "v1", environment: env.ENVIRONMENT });
       } else if (path === "/v1/locations") {
         response = await listLocations(env, url);
-      } else if (path === "/v1/restaurants") {
-        response = await listLocations(env, url, "restaurant");
-      } else if (path === "/v1/meat-markets") {
-        response = await listLocations(env, url, "meat_market");
-      } else if (path === "/v1/dining-halls") {
-        response = await listLocations(env, url, "dining_hall");
       } else if (path === "/v1/chapters") {
         response = await listChapters(env);
       } else if (path === "/v1/dataset") {
