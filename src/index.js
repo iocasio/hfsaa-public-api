@@ -2,9 +2,8 @@ const PUBLIC_FIELDS = [
   "id",
   "type",
   "name",
-  "certificate_id",
+  "verification_url",
   "certification_status",
-  "certification_date",
   "chapter_name",
   "address",
   "city",
@@ -112,7 +111,7 @@ async function querySupabase(env, path, params) {
 
 function buildLocationQuery(url, fixedType) {
   const params = url.searchParams;
-  const allowed = new Set(["type", "state", "city", "zip_code", "chapter", "certificate_id", "q", "limit", "cursor"]);
+  const allowed = new Set(["type", "state", "city", "zip_code", "chapter", "q", "limit", "cursor"]);
   for (const key of params.keys()) {
     if (!allowed.has(key)) return { error: `Unsupported query parameter: ${key}.` };
     if (getSingleValue(params, key) === undefined) return { error: `Query parameter may only be supplied once: ${key}.` };
@@ -151,7 +150,6 @@ function buildLocationQuery(url, fixedType) {
   addExactFilter(query, "city", getSingleValue(params, "city"));
   addExactFilter(query, "zip_code", getSingleValue(params, "zip_code"));
   addExactFilter(query, "chapter_name", getSingleValue(params, "chapter"));
-  addExactFilter(query, "certificate_id", getSingleValue(params, "certificate_id"));
   if (cursor) query.set("id", `gt.${cursor}`);
 
   if (q !== null) {
@@ -239,7 +237,15 @@ export default {
       } else if (path === "/v1/chapters") {
         response = await listChapters(env);
       } else if (path === "/v1/dataset") {
-        response = json({ api_version: "v1", location_types: [...LOCATION_TYPES] });
+        response = json({
+          api_version: "v1",
+          location_types: [...LOCATION_TYPES],
+          attribution: {
+            required: true,
+            text: "HFSAA certification",
+            instructions: "When displaying an HFSAA location, visibly attribute HFSAA and link that attribution to the location’s verification_url.",
+          },
+        });
       } else if (path.startsWith("/v1/locations/")) {
         response = await getLocation(env, decodeURIComponent(path.slice("/v1/locations/".length)));
       } else {

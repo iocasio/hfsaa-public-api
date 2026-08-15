@@ -1,26 +1,38 @@
 ---
 title: "Data policy"
-description: "What HFSAA data the public API is designed to expose."
+description: "What HFSAA data the public API is designed to expose and the attribution requirement."
 ---
 
 ## HFSAA-approved directory data
 
-The public API is designed to expose a deliberately small, stable set of HFSAA directory fields:
+The public API exposes a deliberately small, stable set of HFSAA directory fields:
 
 | Field | Description |
 | --- | --- |
 | `id` | Opaque HFSAA location identifier |
-| `certificate_id` | HFSAA certificate identifier |
 | `type` | `restaurant`, `meat_market`, or `dining_hall` |
 | `name` | Business or facility name |
+| `verification_url` | Official HFSAA verification page for that location |
 | `certification_status` | Certification status |
 | `chapter_name` | Associated HFSAA chapter |
 | `address`, `city`, `state`, `zip_code` | Directory address |
 | `cuisine_type` | HFSAA directory classification, where available |
 | `google_place_id` | Optional Google Place ID identifier |
 
+## Attribution requirement
+
+Use of this API requires visible HFSAA attribution wherever HFSAA location data is displayed to users.
+
+For each displayed location:
+
+1. Display an HFSAA attribution, such as **HFSAA certification**.
+2. Make that attribution clickable.
+3. Link it to the location’s `verification_url`.
+
+This lets users verify the listing through HFSAA’s official locator. Do not imply that HFSAA endorses your application, content, or business.
+
 ## Deliberately excluded fields
 
-The API will not return images, image URLs, Google Maps URLs, hours, phone numbers, websites, delivery links, map coordinates, personal contact details, internal IDs, or operational metadata.
+The API does not return certificate IDs, certificate dates, images, image URLs, Google Maps URLs, hours, phone numbers, websites, delivery links, map coordinates, personal contact details, internal IDs, or operational metadata.
 
-This boundary keeps the API focused on HFSAA-approved directory records. It also means applications that want third-party enrichment can do so using their own provider relationship and permissions.
+This boundary keeps the API focused on HFSAA-approved directory records. Applications that want third-party enrichment can do so using their own provider relationship and permissions.

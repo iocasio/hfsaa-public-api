@@ -22,7 +22,7 @@ The staging URL is for testing and may change before production. Rate limits wil
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "type": "restaurant",
   "name": "Example Restaurant",
-  "certificate_id": "HFSAA-1234",
+  "verification_url": "https://hfsaa-public-locator.pages.dev/certificate/HFSAA-R-EXAMPLE",
   "certification_status": "certified",
   "chapter_name": "Example Chapter",
   "address": "123 Main Street",
@@ -42,7 +42,19 @@ curl "https://hfsaa-public-api-staging.idris-ocasio.workers.dev/v1/locations?typ
 
 ## Filtering and pagination
 
-`GET /v1/locations` supports filters for type, state, city, ZIP code, chapter, certificate ID, and free-text search. Lists use a `limit` and cursor-based `cursor` parameter.
+`GET /v1/locations` supports filters for type, state, city, ZIP code, chapter, and free-text search. Lists use a `limit` and cursor-based `cursor` parameter.
+
+## Required attribution
+
+If you display HFSAA location data to users, visibly attribute HFSAA for each displayed location. That attribution must be clickable and navigate to the location’s `verification_url`.
+
+For example:
+
+```html
+<a href="location.verification_url">HFSAA certification</a>
+```
+
+Do not present HFSAA data in a way that implies HFSAA endorses your application.
 
 ## Google Place IDs
 

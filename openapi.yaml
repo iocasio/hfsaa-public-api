@@ -131,13 +131,6 @@ components:
       schema:
         type: string
         example: New York
-    CertificateId:
-      name: certificate_id
-      in: query
-      description: Filter by HFSAA certificate ID.
-      schema:
-        type: string
-        example: HFSAA-1234
     Search:
       name: q
       in: query
@@ -185,7 +178,7 @@ components:
         - id
         - type
         - name
-        - certificate_id
+        - verification_url
         - certification_status
       properties:
         id:
@@ -197,18 +190,15 @@ components:
         name:
           type: string
           example: Example Restaurant
-        certificate_id:
+        verification_url:
           type: string
-          example: HFSAA-1234
+          format: uri
+          description: Official HFSAA verification page for this location. Displayed HFSAA attribution must link to this URL.
+          example: https://hfsaa-public-locator.pages.dev/certificate/HFSAA-R-EXAMPLE
         certification_status:
           type: string
           description: Public certification state. Only certified locations are returned in v1.
           example: certified
-        certification_date:
-          type: string
-          format: date
-          description: Certification date, when available.
-          example: '2026-01-15'
         chapter_name:
           type: string
           description: Associated HFSAA chapter, when available.
@@ -267,7 +257,7 @@ components:
     DatasetMetadata:
       type: object
       additionalProperties: false
-      required: [api_version, location_types]
+      required: [api_version, location_types, attribution]
       properties:
         api_version:
           type: string
@@ -276,6 +266,20 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/LocationType'
+        attribution:
+          type: object
+          additionalProperties: false
+          required: [required, text, instructions]
+          properties:
+            required:
+              type: boolean
+              example: true
+            text:
+              type: string
+              example: HFSAA certification
+            instructions:
+              type: string
+              example: When displaying an HFSAA location, visibly attribute HFSAA and link that attribution to the location’s verification_url.
     Error:
       type: object
       additionalProperties: false
