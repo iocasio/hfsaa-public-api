@@ -18,6 +18,7 @@
             "pages": [
               "index",
               "getting-started",
+              "ai-integration-guide",
               "data-policy"
             ]
           }
