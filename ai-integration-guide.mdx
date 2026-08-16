@@ -1,0 +1,159 @@
+---
+title: "AI integration guide"
+description: "A precise implementation guide for people and AI coding agents using the HFSAA Public API."
+---
+
+This guide is a compact implementation recipe for applications that display HFSAA-certified locations. It applies equally to human developers and AI coding agents.
+
+## Non-negotiable rules
+
+1. Use the production base URL: `https://api.hfsaa.org`.
+2. Treat the documented API response as the complete HFSAA data contract. Do not infer, scrape, or expose additional fields.
+3. Whenever a location is displayed, show visible **HFSAA certification** attribution and make it link to that location's `verification_url`.
+4. Do not construct or alter `verification_url` values. Use the exact URL returned by the API.
+
+## Fetch locations
+
+Use one endpoint for restaurants, meat markets, and dining halls. Select a category with the `type` query parameter when needed.
+
+```ts
+const API_BASE_URL = "https://api.hfsaa.org";
+
+type LocationType = "restaurant" | "meat_market" | "dining_hall";
+
+async function listLocations(options: {
+  type?: LocationType;
+  state?: string;
+  city?: string;
+  limit?: number;
+  cursor?: string;
+} = {}) {
+  const params = new URLSearchParams();
+
+  if (options.type) params.set("type", options.type);
+  if (options.state) params.set("state", options.state);
+  if (options.city) params.set("city", options.city);
+  if (options.limit) params.set("limit", String(options.limit));
+  if (options.cursor) params.set("cursor", options.cursor);
+
+  const response = await fetch(
+    `${API_BASE_URL}/v1/locations?${params.toString()}`,
+    { headers: { Accept: "application/json" } }
+  );
+
+  const body = await response.json();
+
+  if (!response.ok) {
+    throw new Error(body.error?.message ?? "HFSAA API request failed");
+  }
+
+  return body;
+}
+```
+
+For example:
+
+```bash
+curl "https://api.hfsaa.org/v1/locations?type=dining_hall&limit=1"
+```
+
+A successful response has this shape:
+
+```json
+{
+  "data": [
+    {
+      "id": "50796ba5-9523-4c7f-a74a-465b4d03f0e1",
+      "type": "dining_hall",
+      "name": "NYU Jasper H. Kane Dining Hall",
+      "verification_url": "https://hfsaa-public-locator.pages.dev/?certificate_id=HFSAA-R-9C3E205780",
+      "certification_status": "certified",
+      "chapter_name": "New York",
+      "address": "6 MetroTech Center",
+      "city": "Brooklyn",
+      "state": "NY",
+      "zip_code": "11201",
+      "cuisine_type": null,
+      "google_place_id": "ChIJ85aDTUpawokRxyqHxTnodLI"
+    }
+  ],
+  "pagination": {
+    "limit": 1,
+    "next_cursor": "eyJpZCI6IjUwNzk2YmE1LTk1MjMtNGM3Zi1hNzRhLTQ2NWI0ZDAzZjBlMSJ9"
+  }
+}
+```
+
+## Render required attribution
+
+Attribution is required for every displayed HFSAA location. The link must use the returned `verification_url`.
+
+```tsx
+function HfsaaLocationCard({ location }: { location: Location }) {
+  return (
+    <article>
+      <h2>{location.name}</h2>
+      <p>{location.city}, {location.state}</p>
+
+      <a href={location.verification_url}>
+        HFSAA certification
+      </a>
+    </article>
+  );
+}
+```
+
+Do not substitute a generic HFSAA link for the location-specific `verification_url`, and do not present the data in a way that suggests HFSAA endorses your application.
+
+## Paginate correctly
+
+Responses include `pagination.next_cursor`.
+
+- If it is a string, pass that exact value as `cursor` in the next request.
+- If it is `null`, there are no further results.
+- Keep the same filters while moving through pages.
+- Treat cursors as opaque values. Do not decode, modify, or generate them.
+- `limit` must be an integer from 1 to 100.
+
+```ts
+const firstPage = await listLocations({ type: "restaurant", limit: 25 });
+
+const secondPage = firstPage.pagination.next_cursor
+  ? await listLocations({
+      type: "restaurant",
+      limit: 25,
+      cursor: firstPage.pagination.next_cursor
+    })
+  : null;
+```
+
+## Handle validation errors
+
+Correct invalid requests rather than retrying them unchanged. For example, `limit=0` returns HTTP `400`:
+
+```json
+{
+  "error": {
+    "code": "invalid_parameter",
+    "message": "limit must be an integer between 1 and 100."
+  }
+}
+```
+
+An unknown location ID returns HTTP `404`. For network or server failures, use a small bounded retry strategy in your own application; do not retry invalid `400` requests.
+
+## Google Place IDs
+
+`google_place_id` is optional and is only an identifier. The HFSAA API does not return Google photos, hours, maps, ratings, or other Google content.
+
+If you enrich a listing through Google Places, use your own Google Maps Platform project, credentials, billing, attribution, and policy compliance. HFSAA attribution remains required for the HFSAA data displayed alongside that enrichment.
+
+## Implementation checklist
+
+- [ ] Fetch only from `https://api.hfsaa.org`.
+- [ ] Filter location listings with `type`, `state`, `city`, `zip_code`, `chapter`, or `q` as needed.
+- [ ] Follow `next_cursor` for additional pages.
+- [ ] Render visible **HFSAA certification** attribution for every displayed location.
+- [ ] Link that attribution to the exact returned `verification_url`.
+- [ ] Keep Google Places enrichment separate and use your own provider credentials.
+- [ ] Refer to the [API Reference](/api-reference) for the authoritative endpoint and field definitions.
