@@ -44,6 +44,22 @@ curl "https://api.hfsaa.org/v1/locations?type=restaurant&limit=25"
 
 `GET /v1/locations` supports filters for type, state, city, ZIP code, chapter, and free-text search. Lists use a `limit` and cursor-based `cursor` parameter.
 
+Every list response includes a `dataset_version`. A cursor is bound to that immutable version, and subsequent pages repeat the same version even if HFSAA publishes a newer dataset while you paginate. Keep the same filters with every page request and treat cursors as opaque.
+
+Superseded versions remain available for at least seven days. If a cursor's version has expired, the API returns HTTP `410`; restart pagination without the expired cursor.
+
+## Dataset snapshots
+
+`GET /v1/dataset` returns the current `dataset_version`, UTC `generated_at` time, exact `location_count`, a SHA-256 checksum, and a version-specific `download_url`.
+
+The checksum covers the exact bytes returned by that URL. Use the version-specific URL rather than an unversioned download when reproducibility matters.
+
+## Rate limits and retries
+
+The public API allows 60 requests per minute per IP address. When the limit is exceeded, it returns HTTP `429` with a `Retry-After` header and a structured JSON error body.
+
+Retry `429`, `500`, `502`, `503`, and `504` responses with bounded exponential backoff and jitter. Honor `Retry-After` whenever it is present. Correct `400` requests rather than retrying them unchanged.
+
 ## Verification and attribution
 
 When your product states or implies that a location is certified or halal verified by HFSAA, identify HFSAA and give users reasonable access to the exact `verification_url` returned for that location.

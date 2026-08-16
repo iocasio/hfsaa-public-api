@@ -2,16 +2,25 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "hfsaa-public-api",
   "main": "src/index.js",
-  "compatibility_date": "2026-08-14",
+  "compatibility_date": "2026-08-16",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "r2_buckets": [
+    {
+      "binding": "DATASET_BUCKET",
+      "bucket_name": "hfsaa-public-api-datasets"
+    }
+  ],
   "ratelimits": [
     {
       "name": "API_RATE_LIMITER",
       "namespace_id": "11001",
-      "simple": { "limit": 120, "period": 60 }
+      "simple": { "limit": 60, "period": 60 }
     }
   ],
+  "triggers": {
+    "crons": ["0 6 * * *"]
+  },
   "observability": {
     "enabled": true,
     "logs": { "head_sampling_rate": 1 },
@@ -24,13 +33,22 @@
   "env": {
     "staging": {
       "name": "hfsaa-public-api-staging",
+      "r2_buckets": [
+        {
+          "binding": "DATASET_BUCKET",
+          "bucket_name": "hfsaa-public-api-datasets-staging"
+        }
+      ],
       "ratelimits": [
         {
           "name": "API_RATE_LIMITER",
           "namespace_id": "11002",
-          "simple": { "limit": 120, "period": 60 }
+          "simple": { "limit": 60, "period": 60 }
         }
       ],
+      "triggers": {
+        "crons": ["0 6 * * *"]
+      },
       "vars": {
         "SUPABASE_URL": "https://pmolfcjxryccsisyhhwm.supabase.co",
         "ENVIRONMENT": "staging"

@@ -61,6 +61,7 @@ A successful response has this shape:
 
 ```json
 {
+  "dataset_version": "2ec27a5c-79c4-4fd3-9fd5-95eb2f1fc354",
   "data": [
     {
       "id": "50796ba5-9523-4c7f-a74a-465b4d03f0e1",
@@ -119,6 +120,8 @@ Responses include `pagination.next_cursor`.
 - If it is `null`, there are no further results.
 - Keep the same filters while moving through pages.
 - Treat cursors as opaque values. Do not decode, modify, or generate them.
+- Every page repeats the same immutable `dataset_version`, even if a newer snapshot is published while you paginate.
+- Superseded versions remain available for at least seven days. If a cursor returns HTTP `410`, restart without that cursor.
 - `limit` must be an integer from 1 to 100.
 
 ```ts
@@ -146,7 +149,19 @@ Correct invalid requests rather than retrying them unchanged. For example, `limi
 }
 ```
 
-An unknown location ID returns HTTP `404`. For network or server failures, use a small bounded retry strategy in your own application; do not retry invalid `400` requests.
+An unknown location ID returns HTTP `404`. The public API permits 60 requests per minute per IP; HTTP `429` includes `Retry-After`. Retry `429`, `500`, `502`, `503`, and `504` with bounded exponential backoff and jitter, honoring `Retry-After` when present. Do not retry invalid `400` requests unchanged.
+
+## Download a reproducible snapshot
+
+Fetch `GET /v1/dataset` before downloading a complete dataset. Its response includes:
+
+- an opaque `dataset_version`
+- the UTC `generated_at` time
+- the exact `location_count`
+- a SHA-256 checksum
+- a version-specific `download_url`
+
+The checksum covers the exact bytes returned by `download_url`. Use that version-specific URL when storing or redistributing a snapshot.
 
 ## Google Place IDs
 
@@ -159,6 +174,10 @@ If you enrich a listing through Google Places, use your own Google Maps Platform
 - [ ] Fetch only from `https://api.hfsaa.org`.
 - [ ] Filter location listings with `type`, `state`, `city`, `zip_code`, `chapter`, or `q` as needed.
 - [ ] Follow `next_cursor` for additional pages.
+- [ ] Confirm every page in a pagination sequence has the same `dataset_version`.
+- [ ] Restart pagination if an expired cursor returns HTTP `410`.
+- [ ] Honor `Retry-After` and use bounded backoff with jitter for retryable responses.
+- [ ] Verify complete downloads against the SHA-256 checksum from `GET /v1/dataset`.
 - [ ] When claiming HFSAA certification, identify HFSAA and make the exact `verification_url` reasonably accessible.
 - [ ] Handle nullable chapter, address, cuisine, and Google Place ID fields.
 - [ ] Keep Google Places enrichment separate and use your own provider credentials.

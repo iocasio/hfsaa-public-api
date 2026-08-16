@@ -35,6 +35,18 @@ paths:
                 $ref: '#/components/schemas/LocationList'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '410':
+          $ref: '#/components/responses/Expired'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '502':
+          $ref: '#/components/responses/ServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/ServerError'
   /v1/locations/{locationId}:
     get:
       tags: [Locations]
@@ -52,6 +64,12 @@ paths:
                 $ref: '#/components/schemas/Location'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/chapters:
     get:
       tags: [Chapters]
@@ -64,13 +82,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [data]
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Chapter'
+                $ref: '#/components/schemas/ChapterList'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/dataset:
     get:
       tags: [Metadata]
@@ -84,6 +102,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DatasetMetadata'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /v1/dataset/locations.json:
+    get:
+      tags: [Metadata]
+      summary: Download a dataset snapshot
+      description: Downloads the exact immutable JSON artifact identified by a dataset version. Use the version-specific URL returned by GET /v1/dataset to ensure the checksum and artifact refer to the same snapshot.
+      operationId: downloadDatasetSnapshot
+      parameters:
+        - $ref: '#/components/parameters/Version'
+      responses:
+        '200':
+          description: An immutable dataset snapshot.
+          headers:
+            X-Dataset-Version:
+              description: Dataset version contained in the artifact.
+              schema:
+                type: string
+            X-Checksum-SHA256:
+              description: Lowercase hexadecimal SHA-256 checksum of the exact response body.
+              schema:
+                type: string
+                pattern: '^[0-9a-f]{64}$'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetSnapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '410':
+          $ref: '#/components/responses/Expired'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 components:
   parameters:
     LocationId:
@@ -150,7 +209,14 @@ components:
     Cursor:
       name: cursor
       in: query
-      description: Opaque cursor returned by a prior list response.
+      description: Opaque, dataset-version-bound cursor returned by a prior list response. Keep the same filters when requesting the next page. Superseded versions remain available for at least seven days; an expired cursor returns HTTP 410.
+      schema:
+        type: string
+    Version:
+      name: version
+      in: query
+      required: false
+      description: Opaque dataset version. Omit it to download the current snapshot; use the value in the metadata download_url for a checksum-stable download.
       schema:
         type: string
   responses:
@@ -162,6 +228,42 @@ components:
             $ref: '#/components/schemas/Error'
     NotFound:
       description: The requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Expired:
+      description: The requested cursor or immutable dataset version has expired.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimited:
+      description: The per-IP limit of 60 requests per minute was exceeded.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+            example: 60
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: The service or an upstream dependency could not complete the request. Retry with exponential backoff and jitter.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServiceUnavailable:
+      description: The service is temporarily unavailable. Retry after the indicated delay.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying when known.
+          schema:
+            type: integer
+            example: 60
       content:
         application/json:
           schema:
@@ -224,8 +326,11 @@ components:
     LocationList:
       type: object
       additionalProperties: false
-      required: [data, pagination]
+      required: [dataset_version, data, pagination]
       properties:
+        dataset_version:
+          type: string
+          description: Opaque immutable dataset version used for every page in this pagination sequence.
         data:
           type: array
           items:
@@ -242,8 +347,7 @@ components:
           example: 25
         next_cursor:
           type: [string, 'null']
-          description: Cursor for the next page, or null when no more results exist.
-          example: eyJpZCI6IjU1MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMCJ9
+          description: Dataset-version-bound cursor for the next page, or null when no more results exist.
     Chapter:
       type: object
       additionalProperties: false
@@ -252,14 +356,43 @@ components:
         name:
           type: string
           example: New York
+    ChapterList:
+      type: object
+      additionalProperties: false
+      required: [dataset_version, data]
+      properties:
+        dataset_version:
+          type: string
+          description: Opaque immutable dataset version used to derive this chapter list.
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Chapter'
     DatasetMetadata:
       type: object
       additionalProperties: false
-      required: [api_version, location_types, attribution]
+      required: [api_version, dataset_version, generated_at, location_count, checksum, download_url, location_types, attribution]
       properties:
         api_version:
           type: string
           example: v1
+        dataset_version:
+          type: string
+          description: Opaque immutable version of the current dataset.
+        generated_at:
+          type: string
+          format: date-time
+          description: UTC time at which this snapshot was generated.
+        location_count:
+          type: integer
+          minimum: 0
+          description: Exact number of locations in this dataset version.
+        checksum:
+          $ref: '#/components/schemas/Checksum'
+        download_url:
+          type: string
+          format: uri
+          description: Version-specific URL for the exact artifact covered by checksum.
         location_types:
           type: array
           items:
@@ -278,6 +411,36 @@ components:
             instructions:
               type: string
               example: When stating or implying that a location is certified or halal verified by HFSAA, identify HFSAA and provide reasonable access to the location's exact verification_url.
+    Checksum:
+      type: object
+      additionalProperties: false
+      required: [algorithm, value]
+      properties:
+        algorithm:
+          type: string
+          enum: [sha256]
+        value:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: Lowercase hexadecimal SHA-256 checksum of the exact downloaded artifact bytes.
+    DatasetSnapshot:
+      type: object
+      additionalProperties: false
+      required: [dataset_version, generated_at, location_count, data]
+      properties:
+        dataset_version:
+          type: string
+          description: Opaque immutable dataset version.
+        generated_at:
+          type: string
+          format: date-time
+        location_count:
+          type: integer
+          minimum: 0
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
     Error:
       type: object
       additionalProperties: false
