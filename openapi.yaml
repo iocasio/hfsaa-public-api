@@ -1,15 +1,15 @@
 openapi: 3.1.0
 info:
   title: HFSAA Public API
-  version: 1.0.0-staging
+  version: 1.0.0
   description: |
     Read-only API for HFSAA-certified restaurants, meat markets, and dining halls.
-    This staging preview may change before the production launch.
+    Production v1 API.
   contact:
     name: HFSAA
 servers:
-  - url: https://hfsaa-public-api-staging.idris-ocasio.workers.dev
-    description: Staging preview (temporary)
+  - url: https://api.hfsaa.org
+    description: Production
 paths:
   /v1/locations:
     get:
@@ -23,7 +23,6 @@ paths:
         - $ref: '#/components/parameters/City'
         - $ref: '#/components/parameters/ZipCode'
         - $ref: '#/components/parameters/Chapter'
-        - $ref: '#/components/parameters/CertificateId'
         - $ref: '#/components/parameters/Search'
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/Cursor'
@@ -76,7 +75,7 @@ paths:
     get:
       tags: [Metadata]
       summary: Get dataset metadata
-      description: Returns metadata about the directory dataset and the API contract.
+      description: Returns metadata about the directory dataset and API contract.
       operationId: getDatasetMetadata
       responses:
         '200':
@@ -174,12 +173,7 @@ components:
     Location:
       type: object
       additionalProperties: false
-      required:
-        - id
-        - type
-        - name
-        - verification_url
-        - certification_status
+      required: [id, type, name, verification_url, certification_status]
       properties:
         id:
           type: string
@@ -194,7 +188,7 @@ components:
           type: string
           format: uri
           description: Official HFSAA verification page for this location. Displayed HFSAA attribution must link to this URL.
-          example: https://hfsaa-public-locator.pages.dev/certificate/HFSAA-R-EXAMPLE
+          example: https://hfsaa-public-locator.pages.dev/?certificate_id=HFSAA-R-EXAMPLE
         certification_status:
           type: string
           description: Public certification state. Only certified locations are returned in v1.
