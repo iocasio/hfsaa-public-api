@@ -9,7 +9,7 @@ This guide is a compact implementation recipe for applications that display HFSA
 
 1. Use the production base URL: `https://api.hfsaa.org`.
 2. Treat the documented API response as the complete HFSAA data contract. Do not infer, scrape, or expose additional fields.
-3. Whenever a location is displayed, show visible **HFSAA certification** attribution and make it link to that location's `verification_url`.
+3. When your product states or implies HFSAA certification, identify HFSAA and give users reasonable access to that location's `verification_url`.
 4. Do not construct or alter `verification_url` values. Use the exact URL returned by the API.
 
 ## Fetch locations
@@ -84,26 +84,32 @@ A successful response has this shape:
 }
 ```
 
-## Render required attribution
+## Render verification and attribution
 
-Attribution is required for every displayed HFSAA location. The link must use the returned `verification_url`.
+When you state or imply that a location is certified or halal verified by HFSAA, identify HFSAA and provide reasonable access to the exact returned `verification_url`. There is no required wording or placement.
 
 ```tsx
 function HfsaaLocationCard({ location }: { location: Location }) {
   return (
     <article>
       <h2>{location.name}</h2>
-      <p>{location.city}, {location.state}</p>
+      {location.city && location.state && (
+        <p>{location.city}, {location.state}</p>
+      )}
 
-      <a href={location.verification_url}>
-        HFSAA certification
-      </a>
+      <p>
+        Certified by <a href={location.verification_url}>HFSAA</a>
+      </p>
     </article>
   );
 }
 ```
 
-Do not substitute a generic HFSAA link for the location-specific `verification_url`, and do not present the data in a way that suggests HFSAA endorses your application.
+The link may instead be associated with an HFSAA name, badge, **Learn more** link, or another clearly related details element. In a digital product it must be clickable. Offline material may print the URL or use a QR code. Do not substitute a generic HFSAA link for the location-specific `verification_url`, and do not suggest that HFSAA endorses your application.
+
+## Handle nullable directory fields
+
+`chapter_name`, `address`, `city`, `state`, `zip_code`, `cuisine_type`, and `google_place_id` may each be `null`. Do not assume that address or chapter information is present. Omit or adapt UI elements that depend on unavailable values.
 
 ## Paginate correctly
 
@@ -153,7 +159,7 @@ If you enrich a listing through Google Places, use your own Google Maps Platform
 - [ ] Fetch only from `https://api.hfsaa.org`.
 - [ ] Filter location listings with `type`, `state`, `city`, `zip_code`, `chapter`, or `q` as needed.
 - [ ] Follow `next_cursor` for additional pages.
-- [ ] Render visible **HFSAA certification** attribution for every displayed location.
-- [ ] Link that attribution to the exact returned `verification_url`.
+- [ ] When claiming HFSAA certification, identify HFSAA and make the exact `verification_url` reasonably accessible.
+- [ ] Handle nullable chapter, address, cuisine, and Google Place ID fields.
 - [ ] Keep Google Places enrichment separate and use your own provider credentials.
 - [ ] Refer to the [API Reference](/api-reference) for the authoritative endpoint and field definitions.

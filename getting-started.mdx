@@ -13,7 +13,7 @@ https://api.hfsaa.org
 
 ## Core resource
 
-`Location` is the canonical resource. Every certified restaurant, meat market, and dining hall has an opaque HFSAA location ID and a `type`.
+`Location` is the canonical resource. Every currently certified restaurant, meat market, and dining hall has an opaque HFSAA location ID and a `type`.
 
 ```json
 {
@@ -32,6 +32,8 @@ https://api.hfsaa.org
 }
 ```
 
+`chapter_name`, `address`, `city`, `state`, `zip_code`, `cuisine_type`, and `google_place_id` may each be `null`. Applications should omit or adapt any corresponding UI when a value is unavailable.
+
 ## Make a request
 
 ```bash
@@ -42,15 +44,17 @@ curl "https://api.hfsaa.org/v1/locations?type=restaurant&limit=25"
 
 `GET /v1/locations` supports filters for type, state, city, ZIP code, chapter, and free-text search. Lists use a `limit` and cursor-based `cursor` parameter.
 
-## Required attribution
+## Verification and attribution
 
-If you display HFSAA location data to users, visibly attribute HFSAA for each displayed location. That attribution must be clickable and navigate to the location’s `verification_url`.
+When your product states or implies that a location is certified or halal verified by HFSAA, identify HFSAA and give users reasonable access to the exact `verification_url` returned for that location.
 
-For example:
+For example, this is one acceptable presentation:
 
 ```html
-<a href="location.verification_url">HFSAA certification</a>
+Certified by <a href="location.verification_url">HFSAA</a>
 ```
+
+The link can instead be associated with a badge, **Learn more** link, or another clearly related details element. No exact wording is required. In digital products the URL must be clickable; offline material may use a printed URL or QR code. See the [data policy](/data-policy) for caching, redistribution, freshness, and verification requirements.
 
 Do not present HFSAA data in a way that implies HFSAA endorses your application.
 

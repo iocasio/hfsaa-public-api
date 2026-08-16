@@ -187,35 +187,39 @@ components:
         verification_url:
           type: string
           format: uri
-          description: Official HFSAA verification page for this location. Displayed HFSAA attribution must link to this URL.
+          description: Official HFSAA verification page for this location. When stating or implying HFSAA certification, identify HFSAA and provide reasonable access to this exact URL.
           example: https://hfsaa-public-locator.pages.dev/?certificate_id=HFSAA-R-EXAMPLE
         certification_status:
           type: string
           description: Public certification state. Only certified locations are returned in v1.
           example: certified
         chapter_name:
-          type: string
-          description: Associated HFSAA chapter, when available.
+          type: [string, 'null']
+          description: Associated HFSAA chapter, or null when unavailable.
           example: New York
         address:
-          type: string
+          type: [string, 'null']
+          description: Street address, or null when unavailable.
           example: 123 Main Street
         city:
-          type: string
+          type: [string, 'null']
+          description: City, or null when unavailable.
           example: New York
         state:
-          type: string
+          type: [string, 'null']
+          description: State or territory code, or null when unavailable.
           example: NY
         zip_code:
-          type: string
+          type: [string, 'null']
+          description: ZIP or postal code, or null when unavailable.
           example: '10001'
         cuisine_type:
-          type: string
-          description: HFSAA directory classification, when available.
+          type: [string, 'null']
+          description: HFSAA directory classification, or null when unavailable.
           example: Mediterranean
         google_place_id:
-          type: string
-          description: Optional Google Place ID identifier. This API does not provide Google content.
+          type: [string, 'null']
+          description: Google Place ID identifier, or null when unavailable. This API does not provide Google content.
           example: ChIJd8BlQ2BZwokRAFUEcm_qrcA
     LocationList:
       type: object
@@ -273,7 +277,7 @@ components:
               example: HFSAA certification
             instructions:
               type: string
-              example: When displaying an HFSAA location, visibly attribute HFSAA and link that attribution to the location’s verification_url.
+              example: When stating or implying that a location is certified or halal verified by HFSAA, identify HFSAA and provide reasonable access to the location's exact verification_url.
     Error:
       type: object
       additionalProperties: false
