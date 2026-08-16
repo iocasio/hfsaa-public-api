@@ -1,11 +1,40 @@
 ---
 title: "Data policy"
-description: "What HFSAA data the public API is designed to expose and the attribution requirement."
+description: "Permitted uses, verification requirements, and freshness rules for HFSAA public API data."
 ---
 
-## HFSAA-approved directory data
+## Permitted use
 
-The public API exposes a deliberately small, stable set of HFSAA directory fields:
+HFSAA permits you to download, durably cache, store, reproduce, and redistribute data returned by the public API. This includes complete-dataset snapshots and modified or derived datasets, whether distributed online or offline and whether used commercially or noncommercially.
+
+When using or redistributing the data:
+
+- Identify HFSAA as the source.
+- Preserve `dataset_version` and `generated_at` metadata when the API supplies them.
+- Clearly disclose material modifications to the data.
+- Do not imply that HFSAA endorses your application, content, organization, or business.
+
+This permission does not grant rights to HFSAA trademarks, service marks, or logos. Separate permission may be required to use an HFSAA logo or official badge.
+
+## Verification and attribution
+
+Whenever your product states or implies that a location is certified or halal verified by HFSAA, identify HFSAA and give users reasonable access to that location's exact `verification_url`.
+
+There is no required wording or placement. The verification link may be associated with the certification statement, the HFSAA name, a badge, a **Learn more** link, or another clearly related details element. In a digital product it must be clickable. In offline material, print the URL or provide a scannable QR code.
+
+Do not construct, shorten, or alter a `verification_url`. Use the exact location-specific URL returned by the API rather than a generic HFSAA link.
+
+## Freshness and historical copies
+
+Cached data may be presented as current for no more than 30 days without refreshing it from the API. After 30 days, refresh the data or stop presenting it as current HFSAA certification information.
+
+You may retain historical snapshots for longer when they are clearly labeled as historical. Preserve the HFSAA source, `dataset_version`, `generated_at`, and `verification_url` when those values are available.
+
+The public endpoints return only locations whose current public certification status is `certified`. Pending, revoked, and not-certified locations are excluded. A location's status can change during a cache period, so users should be able to follow its `verification_url` for current verification.
+
+## Public directory fields
+
+The public API exposes a deliberately small set of HFSAA directory fields:
 
 | Field | Description |
 | --- | --- |
@@ -13,23 +42,11 @@ The public API exposes a deliberately small, stable set of HFSAA directory field
 | `type` | `restaurant`, `meat_market`, or `dining_hall` |
 | `name` | Business or facility name |
 | `verification_url` | Official HFSAA verification page for that location |
-| `certification_status` | Certification status |
-| `chapter_name` | Associated HFSAA chapter |
-| `address`, `city`, `state`, `zip_code` | Directory address |
-| `cuisine_type` | HFSAA directory classification, where available |
-| `google_place_id` | Optional Google Place ID identifier |
-
-## Attribution requirement
-
-Use of this API requires visible HFSAA attribution wherever HFSAA location data is displayed to users.
-
-For each displayed location:
-
-1. Display an HFSAA attribution, such as **HFSAA certification**.
-2. Make that attribution clickable.
-3. Link it to the location’s `verification_url`.
-
-This lets users verify the listing through HFSAA’s official locator. Do not imply that HFSAA endorses your application, content, or business.
+| `certification_status` | Public certification status |
+| `chapter_name` | Associated HFSAA chapter, or `null` when unavailable |
+| `address`, `city`, `state`, `zip_code` | Directory address components; each may be `null` |
+| `cuisine_type` | HFSAA directory classification, or `null` when unavailable |
+| `google_place_id` | Google Place ID, or `null` when unavailable |
 
 ## Deliberately excluded fields
 
