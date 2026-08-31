@@ -1,0 +1,76 @@
+---
+title: "API access administration"
+description: "Review applications and control HFSAA Developer API keys."
+---
+
+The MVP uses a Cloudflare Worker secret named `ADMIN_API_TOKEN` for HFSAA-only administration. Keep this token in a password manager. HFSAA administrators can open `/admin`, enter the token once, and use the browser review console. The Worker replaces it with an eight-hour signed, secure browser session; the raw token is not stored in the session cookie.
+
+The JSON endpoints below remain available for trusted server-side operations.
+
+## Review pending applications
+
+```bash
+curl "https://api.hfsaa.org/v1/admin/api-applications?status=pending_review" \
+  -H "Authorization: Bearer $HFSAA_ADMIN_TOKEN"
+```
+
+## Approve an application
+
+Test applications default to 10 requests per minute and 1,000 requests per month. The per-minute limit is fixed by the deployed environment for this MVP. Omit `monthly_limit` to use the default, or assign an explicit monthly limit during review.
+
+```bash
+curl -X POST "https://api.hfsaa.org/v1/admin/api-applications/APPLICATION_ID/approve" \
+  -H "Authorization: Bearer $HFSAA_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"monthly_limit":1000}'
+```
+
+Approval emails a short-lived, one-time claim link. The API key itself does not expire automatically.
+
+## Inspect keys and usage
+
+List active test keys with their current monthly request totals:
+
+```bash
+curl "https://api.hfsaa.org/v1/admin/api-keys?status=active&environment=test" \
+  -H "Authorization: Bearer $HFSAA_ADMIN_TOKEN"
+```
+
+Use the returned key ID to inspect up to 90 days of per-endpoint daily usage plus the last 12 monthly totals:
+
+```bash
+curl "https://api.hfsaa.org/v1/admin/api-keys/KEY_ID/usage?days=30" \
+  -H "Authorization: Bearer $HFSAA_ADMIN_TOKEN"
+```
+
+## Deny an application
+
+```bash
+curl -X POST "https://api.hfsaa.org/v1/admin/api-applications/APPLICATION_ID/deny" \
+  -H "Authorization: Bearer $HFSAA_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"reason":"Please provide a more specific integration use case."}'
+```
+
+## Revoke a key
+
+```bash
+curl -X POST "https://api.hfsaa.org/v1/admin/api-keys/KEY_ID/revoke" \
+  -H "Authorization: Bearer $HFSAA_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"reason":"The key was exposed and must be replaced."}'
+```
+
+Revocation takes effect on the next API request and sends the owner a notification email. The database stores only the key's SHA-256 hash and display-safe hint.
+
+## Developer self-service
+
+Developers open `/developer/manage` and request a 15-minute sign-in link by email. The resulting secure session lasts eight hours and lets them:
+
+- inspect key status, prefixes, monthly usage, and reset date;
+- rotate a key, which immediately revokes the old key and emails a one-time replacement claim link;
+- revoke a key permanently; and
+- open the production-access application.
+
+The portal never displays an existing raw key because HFSAA does not store it.
+

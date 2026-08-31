@@ -2,7 +2,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "hfsaa-public-api",
   "main": "src/index.js",
-  "compatibility_date": "2026-08-16",
+  "compatibility_date": "2026-08-30",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "r2_buckets": [
@@ -28,7 +28,8 @@
   },
   "vars": {
     "SUPABASE_URL": "https://pmolfcjxryccsisyhhwm.supabase.co",
-    "ENVIRONMENT": "production"
+    "ENVIRONMENT": "production",
+    "PUBLIC_API_BASE_URL": "https://api.hfsaa.org"
   },
   "env": {
     "staging": {
@@ -43,7 +44,7 @@
         {
           "name": "API_RATE_LIMITER",
           "namespace_id": "11002",
-          "simple": { "limit": 60, "period": 60 }
+          "simple": { "limit": 10, "period": 60 }
         }
       ],
       "triggers": {
@@ -51,8 +52,10 @@
       },
       "vars": {
         "SUPABASE_URL": "https://pmolfcjxryccsisyhhwm.supabase.co",
-        "ENVIRONMENT": "staging"
+        "ENVIRONMENT": "staging",
+        "PUBLIC_API_BASE_URL": "https://hfsaa-public-api-staging.idris-ocasio.workers.dev"
       }
     }
   }
 }
+

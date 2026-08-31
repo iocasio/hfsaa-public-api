@@ -1,0 +1,47 @@
+---
+title: "Google Forms intake setup"
+description: "Connect the public API application form to the HFSAA Worker."
+---
+
+Google Forms is an intake channel only. Supabase remains the system of record, and Resend continues to deliver verification, approval, denial, usage, revocation, and management emails.
+
+## Form questions
+
+Create a form that does not require a Google account and add these question titles exactly:
+
+| Question | Type | Required |
+| --- | --- | --- |
+| Name | Short answer | Yes |
+| Email | Short answer with email validation | Yes |
+| Organization | Short answer | No |
+| Website | Short answer with URL validation | No |
+| Access type | Multiple choice: `Test` or `Production` | Yes |
+| Expected monthly requests | Short answer with number validation | No |
+| How will you use the API? | Paragraph | Yes |
+
+Test access should be described as non-expiring, limited development and early-stage access. Production access should be described as a paid capacity review.
+
+## Connect the form
+
+1. Open the form's Apps Script project.
+2. Paste `integrations/google-forms/Code.gs` into the project.
+3. In **Project Settings → Script Properties**, add:
+   - `HFSAA_INGEST_URL`: the staging Worker URL ending in `/v1/integrations/google-forms/applications`.
+   - `HFSAA_INGEST_TOKEN`: a dedicated random ingestion secret. Never use the administrator token.
+4. Run `installFormSubmitTrigger` once and approve the requested Google permissions.
+5. Link responses to a restricted Google Sheet for operational review. Limit Sheet and Script access to HFSAA administrators.
+
+The trigger sends each response to the Worker. The Worker validates the dedicated secret, stores the request in Supabase, and asks Resend to verify the applicant's email. Retries use a deterministic verification token and Resend idempotency key, so a repeated trigger does not create multiple active applications or different verification links.
+
+## Staging verification
+
+Submit a test response using an HFSAA-controlled inbox. Confirm that:
+
+1. The form response appears in the restricted Sheet.
+2. The Worker returns HTTP `202` to Apps Script.
+3. The verification email arrives through Resend.
+4. Clicking the verification link moves the Supabase application to `pending_review`.
+5. The application appears in the HFSAA admin dashboard.
+
+Do not connect the production Worker until the staging flow passes end to end.
+

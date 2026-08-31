@@ -1,2 +1,6 @@
 # Copy this file to .dev.vars for local development. Do not commit .dev.vars.
 SUPABASE_SERVICE_ROLE_KEY="replace-with-a-local-service-role-key"
+RESEND_API_KEY="replace-with-a-resend-sending-key"
+ADMIN_API_TOKEN="replace-with-a-long-random-administrator-token"
+GOOGLE_FORMS_INGEST_TOKEN="replace-with-a-separate-long-random-ingestion-token"
+

@@ -18,6 +18,8 @@
             "pages": [
               "index",
               "getting-started",
+              "admin-operations",
+              "google-forms-setup",
               "ai-integration-guide",
               "data-policy"
             ]
@@ -34,3 +36,4 @@
     "options": ["copy", "download-spec"]
   }
 }
+

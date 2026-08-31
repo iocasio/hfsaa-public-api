@@ -5,11 +5,19 @@ description: "Use the HFSAA Public API."
 
 ## Base URL
 
-The v1 API is read-only and does not require an API key.
+The v1 API is read-only and requires an API key.
 
 ```
 https://api.hfsaa.org
 ```
+
+## Get an API key
+
+Open the [API access application](https://api.hfsaa.org/developer/apply), choose test or production access, and verify your email address. HFSAA manually approves or denies each request.
+
+Test access does not require an account. A test key does not expire automatically, but it only works in the test environment and is subject to its assigned rate and monthly request limits. Production access is reviewed separately and may require a paid capacity agreement.
+
+Approved applicants receive a short-lived, one-time claim link. The raw API key is shown once, so store it in a server-side secret manager. Never include it in browser or mobile application code.
 
 ## Core resource
 
@@ -37,7 +45,8 @@ https://api.hfsaa.org
 ## Make a request
 
 ```bash
-curl "https://api.hfsaa.org/v1/locations?type=restaurant&limit=25"
+curl "https://api.hfsaa.org/v1/locations?type=restaurant&limit=25" \
+  -H "Authorization: Bearer $HFSAA_API_KEY"
 ```
 
 ## Filtering and pagination
@@ -56,7 +65,9 @@ The checksum covers the exact bytes returned by that URL. Use the version-specif
 
 ## Rate limits and retries
 
-The public API allows 60 requests per minute per IP address. When the limit is exceeded, it returns HTTP `429` with a `Retry-After` header and a structured JSON error body.
+Test keys default to 10 requests per minute and 1,000 requests per month. HFSAA can assign different limits during production review. Responses include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` for the monthly allowance.
+
+When a per-minute or monthly limit is exceeded, the API returns HTTP `429` with a `Retry-After` header and a structured JSON error body.
 
 Retry `429`, `500`, `502`, `503`, and `504` responses with bounded exponential backoff and jitter. Honor `Retry-After` whenever it is present. Correct `400` requests rather than retrying them unchanged.
 
@@ -77,3 +88,4 @@ Do not present HFSAA data in a way that implies HFSAA endorses your application.
 ## Google Place IDs
 
 When supplied, a `google_place_id` is an identifier only. If your application uses Google Places to look up photos, hours, maps, or other Google content, you are responsible for your own Google Maps Platform credentials, billing, attribution, and policy compliance.
+

@@ -1,3 +1,13 @@
+import {
+  addUsageHeaders,
+  authorizeDataRequest,
+  handleDeveloperRoute,
+  isDeveloperRoute,
+  isProtectedDataRoute,
+  scheduleUsageAlert,
+} from "./developer-api.js";
+import { corsHeaders, error, json, serviceUnavailable } from "./http.js";
+
 const PUBLIC_FIELDS = [
   "id",
   "type",
@@ -23,40 +33,6 @@ const CURRENT_SNAPSHOT_KEY = "metadata/current.json";
 const SNAPSHOT_PREFIX = "snapshots/";
 const RETENTION_PREFIX = "retention/";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Expose-Headers": "Content-Disposition, ETag, Retry-After, X-Checksum-SHA256, X-Dataset-Version",
-    "Access-Control-Max-Age": "86400",
-    "Vary": "Origin",
-  };
-}
-
-function json(body, status = 200, extraHeaders = {}) {
-  return Response.json(body, {
-    status,
-    headers: {
-      ...corsHeaders(),
-      "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=60",
-      "X-Content-Type-Options": "nosniff",
-      ...extraHeaders,
-    },
-  });
-}
-
-function error(code, message, status, extraHeaders = {}) {
-  return json({ error: { code, message } }, status, {
-    "Cache-Control": "no-store",
-    ...extraHeaders,
-  });
-}
-
-function serviceUnavailable(message) {
-  return error("service_unavailable", message, 503, { "Retry-After": "60" });
-}
 
 function parseLimit(value) {
   if (value === null) return DEFAULT_LIMIT;
@@ -613,43 +589,43 @@ function requestPath(url) {
   return url.pathname.replace(/\/+$/, "") || "/";
 }
 
-async function enforceRateLimit(request, env, path) {
-  if (!path.startsWith("/v1/") || !env.API_RATE_LIMITER) return null;
-
-  const key = request.headers.get("CF-Connecting-IP") ?? "unknown";
-  const { success } = await env.API_RATE_LIMITER.limit({ key });
-  return success
-    ? null
-    : error("rate_limited", "Too many requests. Try again in one minute.", 429, { "Retry-After": "60" });
-}
-
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = requestPath(url);
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders() });
-    if (request.method !== "GET") return error("method_not_allowed", "Only GET requests are supported.", 405);
 
     try {
-      const rateLimitResponse = await enforceRateLimit(request, env, path);
-      if (rateLimitResponse) return rateLimitResponse;
+      if (isDeveloperRoute(path)) {
+        const developerResponse = await handleDeveloperRoute(request, env, path);
+        console.log(JSON.stringify({ message: "api_request", method: request.method, path, status: developerResponse.status }));
+        return developerResponse;
+      }
+      if (request.method !== "GET") return error("method_not_allowed", "Only GET requests are supported.", 405);
 
       let response;
       if (path === "/health") {
         response = json({ status: "ok", api_version: "v1", environment: env.ENVIRONMENT });
-      } else if (path === "/v1/locations") {
-        response = await listLocations(env, url);
-      } else if (path === "/v1/chapters") {
-        response = await listChapters(env);
-      } else if (path === "/v1/dataset") {
-        response = await getDatasetMetadata(request, env);
-      } else if (path === "/v1/dataset/locations.json") {
-        response = await downloadDataset(request, env);
-      } else if (path.startsWith("/v1/locations/")) {
-        response = await getLocation(env, decodeURIComponent(path.slice("/v1/locations/".length)));
       } else {
-        response = error("not_found", "Route not found.", 404);
+        if (!isProtectedDataRoute(path)) return error("not_found", "Route not found.", 404);
+        const authorization = await authorizeDataRequest(request, env, path);
+        if (authorization.response) return authorization.response;
+
+        if (path === "/v1/locations") {
+          response = await listLocations(env, url);
+        } else if (path === "/v1/chapters") {
+          response = await listChapters(env);
+        } else if (path === "/v1/dataset") {
+          response = await getDatasetMetadata(request, env);
+        } else if (path === "/v1/dataset/locations.json") {
+          response = await downloadDataset(request, env);
+        } else {
+          response = await getLocation(env, decodeURIComponent(path.slice("/v1/locations/".length)));
+        }
+
+        scheduleUsageAlert(request, env, ctx, authorization.context);
+        response = addUsageHeaders(response, authorization.context);
       }
 
       console.log(JSON.stringify({ message: "api_request", method: request.method, path, status: response.status }));
@@ -657,10 +633,13 @@ export default {
     } catch (caught) {
       const reason = caught instanceof Error ? caught.message : "unknown_error";
       console.error(JSON.stringify({ message: "api_request_failed", path, reason }));
-      if (reason === "missing_supabase_service_role_key" || reason === "missing_dataset_bucket") {
+      if (reason === "missing_supabase_service_role_key"
+        || reason === "missing_dataset_bucket"
+        || reason === "missing_resend_api_key") {
         return serviceUnavailable("The API is not configured yet.");
       }
       if (reason.startsWith("supabase_request_failed:")
+        || reason.startsWith("resend_request_failed:")
         || reason === "supabase_response_invalid"
         || reason === "supabase_location_invalid"
         || reason === "snapshot_empty"
@@ -687,3 +666,4 @@ export {
   publishSnapshot,
   reconcileSnapshotRetention,
 };
+

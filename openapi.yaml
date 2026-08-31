@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
   title: HFSAA Public API
-  version: 1.0.0
+  version: 1.2.0
   description: |
-    Read-only API for HFSAA-certified restaurants, meat markets, and dining halls.
-    Production v1 API.
+    API-key protected access to HFSAA-certified restaurants, meat markets, and dining halls.
+    Developers can request test access without creating an account. Test keys do not
+    expire automatically, but they are restricted to the test environment and quota.
   contact:
     name: HFSAA
 servers:
   - url: https://api.hfsaa.org
     description: Production
+  - url: https://hfsaa-public-api-staging.idris-ocasio.workers.dev
+    description: Test
+security:
+  - ApiKeyAuth: []
 paths:
   /v1/locations:
     get:
@@ -143,8 +148,364 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+  /developer/apply:
+    get:
+      tags: [Developer Access]
+      summary: Open the API access application form
+      operationId: showDeveloperApplicationForm
+      security: []
+      responses:
+        '200':
+          description: Accountless fallback HTML application form.
+          content:
+            text/html:
+              schema:
+                type: string
+        '302':
+          description: Redirects to the configured HFSAA Google Form.
+  /v1/developer/applications:
+    post:
+      tags: [Developer Access]
+      summary: Submit an API access application
+      description: Sends an email-verification link before the request enters manual HFSAA review.
+      operationId: submitDeveloperApplication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeveloperApplicationInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DeveloperApplicationInput'
+      responses:
+        '202':
+          description: The application was accepted for email verification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationSubmission'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '413':
+          description: The application body is too large.
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /v1/developer/verify:
+    get:
+      tags: [Developer Access]
+      summary: Open the email-verification confirmation page
+      operationId: showDeveloperVerificationConfirmation
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A confirmation page that does not consume the one-time token.
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: The token is malformed.
+    post:
+      tags: [Developer Access]
+      summary: Confirm an application email address
+      description: Consumes the one-time token only after the person submits the confirmation form, preventing email scanners from using it.
+      operationId: verifyDeveloperApplication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Email verified; the application is pending review.
+        '400':
+          description: The token is invalid, expired, or already used.
+  /v1/developer/keys/claim:
+    get:
+      tags: [Developer Access]
+      summary: Open the API-key claim confirmation page
+      description: Does not generate or consume the key until the confirmation form is submitted.
+      operationId: showDeveloperApiKeyClaim
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML confirmation page.
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: The token is malformed.
+    post:
+      tags: [Developer Access]
+      summary: Claim an approved API key once
+      description: Generates the API key at confirmation time. The raw key is returned once and is never stored by HFSAA.
+      operationId: claimDeveloperApiKey
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: The newly generated API key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIKeyClaim'
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: The claim token is invalid, expired, or already used.
+  /developer/manage:
+    get:
+      tags: [Developer Access]
+      summary: Open accountless API-key management
+      description: Requests a one-time sign-in link by email; no developer account or password is required.
+      operationId: showDeveloperKeyManagement
+      security: []
+      responses:
+        '200':
+          description: HTML management-link request form.
+          content:
+            text/html:
+              schema:
+                type: string
+  /v1/developer/manage/request:
+    post:
+      tags: [Developer Access]
+      summary: Request a one-time management link
+      description: Always returns a generic response so callers cannot discover which email addresses are eligible.
+      operationId: requestDeveloperManagementLink
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 320
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 320
+      responses:
+        '202':
+          description: The generic request response, whether or not the email is eligible.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /v1/admin/api-applications:
+    get:
+      tags: [Administration]
+      summary: List API access applications
+      operationId: listDeveloperApplications
+      security:
+        - AdminBearer: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [email_verification_required, pending_review, approved, denied]
+            default: pending_review
+      responses:
+        '200':
+          description: Up to 100 applications in newest-first order.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/admin/api-applications/{applicationId}/approve:
+    post:
+      tags: [Administration]
+      summary: Approve an application and email a one-time claim link
+      operationId: approveDeveloperApplication
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                monthly_limit:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Approved and claim email sent.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: The application cannot be approved in its current state.
+  /v1/admin/api-applications/{applicationId}/deny:
+    post:
+      tags: [Administration]
+      summary: Deny an application and email the reason
+      operationId: denyDeveloperApplication
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: '#/components/parameters/ApplicationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: Denied and decision email sent.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: The application cannot be denied in its current state.
+  /v1/admin/api-keys:
+    get:
+      tags: [Administration]
+      summary: List API keys and current-month usage
+      operationId: listDeveloperApiKeys
+      security:
+        - AdminBearer: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, revoked]
+        - name: environment
+          in: query
+          schema:
+            type: string
+            enum: [test, production]
+      responses:
+        '200':
+          description: Keys with owner details, limits, and current-month usage. Raw keys are never returned.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/admin/api-keys/{keyId}/usage:
+    get:
+      tags: [Administration]
+      summary: Inspect usage for an API key
+      operationId: getDeveloperApiKeyUsage
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: '#/components/parameters/KeyId'
+        - name: days
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 90
+            default: 30
+      responses:
+        '200':
+          description: Up to 90 days of daily per-endpoint usage and the last 12 monthly totals.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: API key not found.
+  /v1/admin/api-keys/{keyId}/revoke:
+    post:
+      tags: [Administration]
+      summary: Revoke an API key and notify its owner
+      operationId: revokeDeveloperApiKey
+      security:
+        - AdminBearer: []
+      parameters:
+        - $ref: '#/components/parameters/KeyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: Revoked and notification email sent.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: The key is not active.
 components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: hfsaa_test_... or hfsaa_live_...
+      description: 'Use the API key as `Authorization: Bearer <api-key>`.'
+    AdminBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: HFSAA administrator token
   parameters:
+    ApplicationId:
+      name: applicationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    KeyId:
+      name: keyId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     LocationId:
       name: locationId
       in: path
@@ -220,6 +581,12 @@ components:
       schema:
         type: string
   responses:
+    Unauthorized:
+      description: The Bearer credential is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
     BadRequest:
       description: The request contains an invalid parameter.
       content:
@@ -239,7 +606,7 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
     RateLimited:
-      description: The per-IP limit of 60 requests per minute was exceeded.
+      description: The API key's per-minute or monthly allowance was exceeded.
       headers:
         Retry-After:
           description: Seconds to wait before retrying.
@@ -269,6 +636,58 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
+    DeveloperApplicationInput:
+      type: object
+      additionalProperties: false
+      required: [applicant_name, email, use_case, requested_tier]
+      properties:
+        applicant_name:
+          type: string
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        organization:
+          type: [string, 'null']
+          maxLength: 160
+        website:
+          type: [string, 'null']
+          format: uri
+          maxLength: 500
+        use_case:
+          type: string
+          maxLength: 2000
+        requested_tier:
+          type: string
+          enum: [test, production]
+        expected_monthly_requests:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 100000000
+    ApplicationSubmission:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [verification_required]
+    APIKeyClaim:
+      type: object
+      additionalProperties: false
+      required: [api_key, environment, monthly_limit]
+      properties:
+        api_key:
+          type: string
+          writeOnly: true
+          description: Returned once. Store it securely.
+        environment:
+          type: string
+          enum: [test, production]
+        monthly_limit:
+          type: integer
+          minimum: 1
     LocationType:
       type: string
       enum: [restaurant, meat_market, dining_hall]
@@ -456,3 +875,4 @@ components:
             message:
               type: string
               example: limit must be between 1 and 100.
+
