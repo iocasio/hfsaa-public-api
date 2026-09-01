@@ -5,6 +5,7 @@
   "compatibility_date": "2026-08-30",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "preview_urls": false,
   "r2_buckets": [
     {
       "binding": "DATASET_BUCKET",
@@ -34,6 +35,7 @@
   "env": {
     "staging": {
       "name": "hfsaa-public-api-staging",
+      "preview_urls": false,
       "r2_buckets": [
         {
           "binding": "DATASET_BUCKET",
