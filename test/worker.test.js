@@ -314,6 +314,16 @@ test("the developer form explains that test keys do not expire", async () => {
   assert.match(body, /name="requested_tier"/);
 });
 
+test("the developer application route redirects to the configured external form", async () => {
+  const testEnv = env(new MemoryR2Bucket());
+  testEnv.DEVELOPER_APPLICATION_FORM_URL = "https://docs.google.com/forms/d/e/test-form/viewform";
+
+  const response = await worker.fetch(new Request("https://api.example/developer/apply"), testEnv);
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get("Location"), testEnv.DEVELOPER_APPLICATION_FORM_URL);
+});
+
 test("an application stores only a verification hash and sends the verification template", async () => {
   const calls = [];
   await withFetchMock(async (input, init, previous) => {
@@ -419,6 +429,47 @@ test("an administrator can approve a verified application and send a one-time cl
   const emailBody = JSON.parse(calls.find((call) => call.url.hostname === "api.resend.com").init.body);
   assert.equal(emailBody.template.id, "api-access-key-ready");
   assert.match(emailBody.template.variables.CLAIM_URL, /\/v1\/developer\/keys\/claim\?token=/);
+});
+
+test("the administrator browser form can approve an application", async () => {
+  const testEnv = env(new MemoryR2Bucket());
+  const loginResponse = await worker.fetch(new Request("https://api.example/admin/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `admin_token=${encodeURIComponent(ADMIN_API_TOKEN)}`,
+  }), testEnv);
+  const cookie = loginResponse.headers.get("Set-Cookie").split(";", 1)[0];
+  let approvalBody;
+
+  const response = await withFetchMock(async (input, init, previous) => {
+    const url = fetchUrl(input);
+    if (url.pathname.endsWith("/rpc/developer_api_approve_application")) {
+      approvalBody = JSON.parse(init.body);
+      return Response.json({
+        approved: true,
+        application_id: APPLICATION_ID,
+        applicant_name: "Test Developer",
+        email: "developer@example.com",
+        requested_tier: "test",
+        monthly_limit: 50,
+        rate_limit_per_minute: 10,
+      });
+    }
+    if (url.hostname === "api.resend.com") return Response.json({ id: "email-id" });
+    return previous(input, init);
+  }, () => worker.fetch(new Request(`https://api.example/admin/applications/${APPLICATION_ID}/approve`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Cookie": cookie,
+      "Origin": "https://api.example",
+    },
+    body: "monthly_limit=50",
+  }), testEnv));
+
+  assert.equal(response.status, 303);
+  assert.equal(response.headers.get("Location"), "/admin");
+  assert.equal(approvalBody.p_monthly_limit, 50);
 });
 
 test("an administrator can list keys and inspect per-endpoint usage", async () => {
@@ -604,6 +655,40 @@ test("a management link becomes a secure short-lived session cookie", async () =
   assert.doesNotMatch(cookie, /one-time-token/);
   assert.match(rpcBody.p_token_hash, /^[0-9a-f]{64}$/);
   assert.match(rpcBody.p_session_hash, /^[0-9a-f]{64}$/);
+});
+
+test("the developer browser form can rotate an active key", async () => {
+  let rotationBody;
+  let emailBody;
+  const response = await withFetchMock(async (input, init, previous) => {
+    const url = fetchUrl(input);
+    if (url.pathname.endsWith("/rpc/developer_api_rotate_own_key")) {
+      rotationBody = JSON.parse(init.body);
+      return Response.json({
+        authenticated: true,
+        rotated: true,
+        applicant_name: "Test Developer",
+        email: "developer@example.com",
+      });
+    }
+    if (url.hostname === "api.resend.com") {
+      emailBody = JSON.parse(init.body);
+      return Response.json({ id: "email-id" });
+    }
+    return previous(input, init);
+  }, () => worker.fetch(new Request(`https://api.example/v1/developer/manage/keys/${KEY_ID}/rotate`, {
+    method: "POST",
+    headers: {
+      "Cookie": "hfsaa_developer_session=session-token",
+      "Origin": "https://api.example",
+    },
+  }), env(new MemoryR2Bucket())));
+
+  assert.equal(response.status, 200);
+  assert.match(await response.text(), /The old key has been disabled/i);
+  assert.equal(rotationBody.p_key_id, KEY_ID);
+  assert.match(rotationBody.p_session_hash, /^[0-9a-f]{64}$/);
+  assert.equal(emailBody.template.id, "api-access-key-ready");
 });
 
 test("the developer dashboard shows prefixes and usage but never a full API key", async () => {

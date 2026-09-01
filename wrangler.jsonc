@@ -55,7 +55,8 @@
       "vars": {
         "SUPABASE_URL": "https://pmolfcjxryccsisyhhwm.supabase.co",
         "ENVIRONMENT": "staging",
-        "PUBLIC_API_BASE_URL": "https://hfsaa-public-api-staging.idris-ocasio.workers.dev"
+        "PUBLIC_API_BASE_URL": "https://hfsaa-public-api-staging.idris-ocasio.workers.dev",
+        "DEVELOPER_APPLICATION_FORM_URL": "https://docs.google.com/forms/d/e/1FAIpQLSfSsDC5I_bDs-h_D1l3R4mvuU8vVhJLDe8-pZtpNyIxK8hLUA/viewform"
       }
     }
   }
