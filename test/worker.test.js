@@ -640,12 +640,12 @@ test("the developer dashboard shows prefixes and usage but never a full API key"
   assert.match(body, /cannot display an existing full key/i);
 });
 
-test("administrator browser sign-in creates a signed session without storing the admin token", async () => {
+test("administrator browser sign-in creates a signed session despite unreliable origin metadata", async () => {
   const loginResponse = await worker.fetch(new Request("https://api.example/admin/login", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "Origin": "https://api.example",
+      "Origin": "https://browser-context.example",
     },
     body: `admin_token=${encodeURIComponent(ADMIN_API_TOKEN)}`,
   }), env(new MemoryR2Bucket()));
@@ -663,5 +663,32 @@ test("administrator browser sign-in creates a signed session without storing the
   }, () => worker.fetch(new Request("https://api.example/admin", { headers: { Cookie: cookie } }), env(new MemoryR2Bucket())));
   assert.equal(dashboardResponse.status, 200);
   assert.match(await dashboardResponse.text(), /API administration/);
+});
+
+test("administrator browser sign-in rejects an invalid token despite unreliable origin metadata", async () => {
+  const response = await worker.fetch(new Request("https://api.example/admin/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Origin": "https://browser-context.example",
+    },
+    body: "admin_token=not-the-admin-token",
+  }), env(new MemoryR2Bucket()));
+
+  assert.equal(response.status, 401);
+  assert.equal(response.headers.get("Set-Cookie"), null);
+  assert.match(await response.text(), /administrator token is invalid/i);
+});
+
+test("administrator browser mutations still reject cross-site requests", async () => {
+  const response = await worker.fetch(new Request("https://api.example/admin/logout", {
+    method: "POST",
+    headers: { "Origin": "https://browser-context.example" },
+  }), env(new MemoryR2Bucket()));
+
+  assert.equal(response.status, 403);
+  assert.deepEqual(await response.json(), {
+    error: { code: "forbidden", message: "Cross-site requests are not allowed." },
+  });
 });
 

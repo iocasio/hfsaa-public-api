@@ -724,7 +724,9 @@ function adminLoginPage() {
 }
 
 async function loginAdmin(request, env) {
-  if (!sameOriginRequest(request)) return error("forbidden", "Cross-site requests are not allowed.", 403);
+  // The administrator token is the login CSRF secret. Browser Origin and
+  // Sec-Fetch-Site values are not reliable across privacy modes and embedded
+  // clients; authenticated mutation routes retain their same-origin checks.
   if (!env.ADMIN_API_TOKEN) return serviceUnavailable("Administrative access is not configured.");
   const body = await requestBody(request);
   const supplied = typeof body?.admin_token === "string" ? body.admin_token : "";
